@@ -38,6 +38,6 @@ pub fn map_application(config: &Config) -> Result<Application, Box<dyn std::erro
         parent: current_app.parent,
         subcomponents: current_app.subcomponents,
         internal_dependencies: inter_deps,
-        external_dependencies: Vec::new(),
+        external_dependencies: current_app.external_dependencies,
     })
 }
