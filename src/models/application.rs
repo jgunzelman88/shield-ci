@@ -1,7 +1,8 @@
 use super::property_mapping::PropertyMapping;
+use crate::models::config::{Config, RESULT_DIR};
+
 use serde::{Serialize, Deserialize};
 use serde_json;
-use crate::models::config::{Config, RESULT_DIR};
 use std::io::{Write, Read};
 use std::fs;
 use std::path;
@@ -18,6 +19,7 @@ pub struct Application {
 
 #[derive(Serialize)]
 #[derive(Deserialize)]
+#[derive(Clone)]
 pub struct Dependency {
     pub name: String,
     pub version: String,
@@ -65,8 +67,8 @@ pub fn read_applicaiton(config: &Config) -> Application {
       Ok(_) => (),
       Err(_) => return basic,
   }
-  let npm_content: Application = serde_json::from_str(&json).unwrap_or_else(|_| {return basic});
-  return npm_content;
+  let content: Application = serde_json::from_str(&json).unwrap_or_else(|_| {return basic});
+  return content;
 }
 
 /// Detects standard files that are associated with certain technoloies to allow scraping of data.
@@ -77,7 +79,6 @@ pub fn detect_technologies(config: &Config) -> Technologies{
       cargo: false,
       docker: false
     };
-  
     // Python
     let pip_loc = format!("{}/requirements.txt", config.base_dir);
     let pip_path = path::Path::new(&pip_loc);

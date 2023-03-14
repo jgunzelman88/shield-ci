@@ -1,0 +1,5 @@
+config:
+  - item:
+      port: 22
+      version: "1.0.0"
+      protocol: "ssh"

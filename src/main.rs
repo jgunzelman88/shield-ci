@@ -1,4 +1,5 @@
 use clap::Parser;
+use log;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use std::path;
@@ -24,6 +25,7 @@ fn main() {
     let args = Args::parse();
     set_up_logger(&args);
     let config: Config;
+    log::info!("Phoenix🛡️  Processing ...");
     match read_config(&args) {
         Ok(val) => config = val,
         Err(e) => {
@@ -61,5 +63,5 @@ fn set_up_logger(args: &Args) {
     if args.verbose {
         level = LevelFilter::Debug;
     }
-    SimpleLogger::new().with_level(level).init().unwrap();
+    SimpleLogger::new().env().with_level(level).init().unwrap();
 }
