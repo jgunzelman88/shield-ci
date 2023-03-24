@@ -10,6 +10,7 @@ use std::path;
 #[derive(Serialize)]
 #[derive(Deserialize)]
 pub struct Application {
+    pub id: Option<String>,
     pub name: String,
     pub parent: Option<String>,
     pub subcomponents: Option<Vec::<String>>,
@@ -48,10 +49,11 @@ pub fn write_application(app: &Application, path: &path::Path) -> Result<(), Box
     Ok(())
 }
 
-/// Reads the curent application json file to get human 
+/// Reads the curent application json file
 pub fn read_applicaiton(config: &Config) -> Application {
   let mut app_file: fs::File;
   let basic = Application {
+      id: None,
       name: String::new(),
       parent: None,
       subcomponents: None,

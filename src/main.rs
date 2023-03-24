@@ -4,6 +4,7 @@ use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use std::path;
 use std::process::exit;
+use tokio;
 
 mod property_mapping;
 use property_mapping::npm_mapper;
@@ -12,20 +13,30 @@ mod models;
 use models::application;
 use models::config::{Config, RESULT_DIR};
 
+mod utils;
+use utils::pocketbase;
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
-    #[arg(default_value_t = String::from("./"))]
+    #[arg(long, default_value_t = String::from("./"))]
     path: String,
     #[arg(short, long, default_value_t = false)]
     verbose: bool,
+    #[arg(long, default_value_t = String::from(""))]
+    pb: String,
+    #[arg(long, default_value_t = String::from(""))]
+    pb_user: String,
+    #[arg(long, default_value_t = String::from(""))]
+    pb_pass: String,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     set_up_logger(&args);
     let config: Config;
-    log::info!("Phoenix🛡️  Processing ...");
+    log::info!("🛡️ Shield CI Processing ...");
     match read_config(&args) {
         Ok(val) => config = val,
         Err(e) => {
@@ -35,16 +46,14 @@ fn main() {
     }
     let tech = application::detect_technologies(&config);
     if tech.npm {
-        match npm_mapper::map_application(&config) {
-            Ok(app) => {
-                application::write_application(&app, path::Path::new(RESULT_DIR))
-                    .expect("Failed to write app.json");
-            }
-            Err(e) => {
-                log::error!("Failed to build Application definition: \n{}", e);
-            }
+        let app = npm_mapper::map_application(&config)?;
+        application::write_application(&app, path::Path::new(RESULT_DIR))
+            .expect("Failed to write app.json");
+        if config.pb_server != "" {
+            pocketbase::submit_results(&app, &config).await?;
         }
     }
+    Ok(())
 }
 
 fn read_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
@@ -52,6 +61,9 @@ fn read_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
     if path.exists() {
         Ok(Config {
             base_dir: args.path.clone(),
+            pb_server: args.pb.clone(),
+            pb_user: args.pb_user.clone(),
+            pb_pass: args.pb_pass.clone(),
         })
     } else {
         Err(Box::from("Path Provided does not exsist"))

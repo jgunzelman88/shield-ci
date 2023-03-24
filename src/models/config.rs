@@ -6,5 +6,8 @@ pub const RESULT_DIR: &str = "./p-shield";
 #[derive(Serialize)]
 #[derive(Deserialize)]
 pub struct Config{
-    pub base_dir: String
+    pub base_dir: String,
+    pub pb_server: String,
+    pub pb_user: String,
+    pub pb_pass: String
 }
