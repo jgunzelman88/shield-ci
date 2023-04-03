@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 #[serde(rename_all = "camelCase")]
 pub struct OwsapReport {
     scan_info: ScanInfo
-}`
+}
 #[derive(Serialize)]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
