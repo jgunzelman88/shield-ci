@@ -12,6 +12,7 @@ use std::path;
 pub struct Application {
     pub id: Option<String>,
     pub name: String,
+    pub description: Option<String>,
     pub parent: Option<String>,
     pub subcomponents: Option<Vec::<String>>,
     pub internal_dependencies: Vec::<Dependency>,
@@ -56,6 +57,7 @@ pub fn read_applicaiton(config: &Config) -> Application {
       id: None,
       name: String::new(),
       parent: None,
+      description: None,
       subcomponents: None,
       internal_dependencies: Vec::new(),
       external_dependencies: Vec::new(),

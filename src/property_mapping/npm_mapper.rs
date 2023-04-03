@@ -21,6 +21,7 @@ struct PackageLock {
 #[derive(Serialize, Deserialize)]
 struct NpmPackage {
     pub name: String,
+    pub description: Option<String>,
     pub dependencies: HashMap<String, String>,
     pub version: String,
 }
@@ -39,8 +40,7 @@ pub fn map_application(config: &Config) -> Result<Application, Box<dyn std::erro
     let mut package_json = String::new();
     package_file.read_to_string(&mut package_json)?;
     let package: NpmPackage = serde_json::from_str(&package_json)?;
-
-
+    // Set Dependencies 
     let inter_deps: Vec<Dependency> = package
         .dependencies
         .into_iter()
@@ -66,6 +66,7 @@ pub fn map_application(config: &Config) -> Result<Application, Box<dyn std::erro
     Ok(Application {
         id: current_app.id,
         name: package_lock.name,
+        description: None,
         parent: current_app.parent,
         subcomponents: current_app.subcomponents,
         internal_dependencies: inter_deps,

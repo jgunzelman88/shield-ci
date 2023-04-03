@@ -24,11 +24,11 @@ pub struct Args {
     #[arg(short, long, default_value_t = false)]
     verbose: bool,
     #[arg(long, default_value_t = String::from(""))]
-    pb: String,
+    shield_url: String,
     #[arg(long, default_value_t = String::from(""))]
-    pb_user: String,
+    shield_user: String,
     #[arg(long, default_value_t = String::from(""))]
-    pb_pass: String,
+    shield_pass: String,
 }
 
 #[tokio::main]
@@ -52,6 +52,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if config.pb_server != "" {
             pocketbase::submit_results(&app, &config).await?;
         }
+    }else {
+        log::info!("No compatable technology found!")
     }
     Ok(())
 }
@@ -61,9 +63,9 @@ fn read_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
     if path.exists() {
         Ok(Config {
             base_dir: args.path.clone(),
-            pb_server: args.pb.clone(),
-            pb_user: args.pb_user.clone(),
-            pb_pass: args.pb_pass.clone(),
+            pb_server: args.shield_url.clone(),
+            pb_user: args.shield_user.clone(),
+            pb_pass: args.shield_pass.clone(),
         })
     } else {
         Err(Box::from("Path Provided does not exsist"))
