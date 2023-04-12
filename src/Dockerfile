@@ -1,6 +1,7 @@
 # ---- Dev Image ---- 
 FROM redhat/ubi8:latest
-VOLUME [ "/home/shieldci/source" ] build
+VOLUME [ "/home/shieldci/src" ] src
+VOLUME [ "/home/shieldci/src" ] src
 
 ARG JAVA_VERSION=java-11-openjdk
 ARG DEP_CHECK_VERSION=8.2.1
@@ -13,6 +14,8 @@ WORKDIR /home/shieldci
 RUN curl https://sh.rustup.rs --output sh.rustup.rs &&\
     sh ./sh.rustup.rs -y &&\
     rm sh.rustup.rs &&\
+    yum -y install gcc &&\
+    yum -y install openssl-devel &&\
     # Install Java & OWASP Dependecy check
     yum -y install ${JAVA_VERSION} &&\
     yum -y install zip &&\

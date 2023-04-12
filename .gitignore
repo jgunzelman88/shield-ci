@@ -1,3 +1,6 @@
+/.vscode
 /target
 /p-shield
 /test-data
+test.json
+test

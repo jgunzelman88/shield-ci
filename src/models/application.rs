@@ -12,6 +12,7 @@ use std::path;
 pub struct Application {
     pub id: Option<String>,
     pub name: String,
+    pub maintainer: Option<String>,
     pub description: Option<String>,
     pub parent: Option<String>,
     pub subcomponents: Option<Vec::<String>>,
@@ -29,6 +30,15 @@ pub struct Dependency {
     pub protocol: Option<String>,
     pub property_mappings: Option<Vec::<PropertyMapping>>
 }
+
+#[derive(Serialize)]
+#[derive(Deserialize)]
+#[derive(Clone)]
+pub struct SubDependency {
+    pub version: String,
+    pub path: String,
+}
+
 #[derive(Serialize)]
 #[derive(Deserialize)]
 pub struct Technologies {
@@ -36,18 +46,6 @@ pub struct Technologies {
     pub pip: bool,
     pub cargo: bool,
     pub docker: bool,
-}
-
-/// Wrties application json file to specified location
-pub fn write_application(app: &Application, path: &path::Path) -> Result<(), Box<dyn std::error::Error>> {
-    let json = serde_json::to_string_pretty(app)?;
-    if path.exists() == false {
-      fs::create_dir_all(path)?;
-    }
-    let file_name = format!("{}/app.json", path.to_str().unwrap());
-    let mut file = fs::File::create(file_name)?;
-    file.write_all(json.as_bytes())?;
-    Ok(())
 }
 
 /// Reads the curent application json file
@@ -58,6 +56,7 @@ pub fn read_applicaiton(config: &Config) -> Application {
       name: String::new(),
       parent: None,
       description: None,
+      maintainer: None,
       subcomponents: None,
       internal_dependencies: Vec::new(),
       external_dependencies: Vec::new(),

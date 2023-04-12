@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-pub const RESULT_DIR: &str = "./p-shield";
+pub const RESULT_DIR: &str = "./shield-ci";
 /// Config File Mapping
 /// # Properties
 #[derive(Serialize)]

@@ -1,7 +1,5 @@
 use clap::Parser;
 use log;
-use log::LevelFilter;
-use simple_logger::SimpleLogger;
 use std::path;
 use std::process::exit;
 use tokio;
@@ -14,7 +12,8 @@ use models::application;
 use models::config::{Config, RESULT_DIR};
 
 mod utils;
-use utils::pocketbase;
+use utils::shield;
+use utils::shared;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -34,7 +33,8 @@ pub struct Args {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    set_up_logger(&args);
+    let verbose = args.verbose;
+    shared::set_up_logger(verbose);
     let config: Config;
     log::info!("🛡️ Shield CI Processing ...");
     match read_config(&args) {
@@ -47,14 +47,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tech = application::detect_technologies(&config);
     if tech.npm {
         let app = npm_mapper::map_application(&config)?;
-        application::write_application(&app, path::Path::new(RESULT_DIR))
-            .expect("Failed to write app.json");
+        let path_name = format!("{}/{}/app.json", config.base_dir, RESULT_DIR);
+        shared::write_json_file(path::Path::new(&path_name), &app)?;
         if config.pb_server != "" {
-            pocketbase::submit_results(&app, &config).await?;
+            shield::submit_results(&app, &config).await?;
         }
     }else {
         log::info!("No compatable technology found!")
     }
+    log::info!("Finished!!");
     Ok(())
 }
 
@@ -70,12 +71,4 @@ fn read_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
     } else {
         Err(Box::from("Path Provided does not exsist"))
     }
-}
-
-fn set_up_logger(args: &Args) {
-    let mut level = LevelFilter::Info;
-    if args.verbose {
-        level = LevelFilter::Debug;
-    }
-    SimpleLogger::new().env().with_level(level).init().unwrap();
 }

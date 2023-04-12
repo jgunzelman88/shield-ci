@@ -1,9 +1,11 @@
-use crate::models::application::{write_application, Application};
+use crate::models::application::Application;
 use crate::models::config::{Config, RESULT_DIR};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path;
+
+use super::shared::write_json_file;
 
 pub async fn submit_results(
     app: &Application,
@@ -53,7 +55,8 @@ pub async fn create_app(
         .send()
         .await?;
     let result_app: Application = response.json().await?;
-    write_application(&result_app, path::Path::new(RESULT_DIR))?;
+    let path_name = format!("{}/app.json", RESULT_DIR);
+    write_json_file(path::Path::new(&path_name), &result_app);
     Ok(())
 }
 

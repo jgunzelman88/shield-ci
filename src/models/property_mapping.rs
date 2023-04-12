@@ -1,4 +1,4 @@
-use super::application::Dependency;
+use super::{application::Dependency, config::Config};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use serde_yaml::Value as YamlValue;
@@ -18,7 +18,7 @@ enum FileFormat {
 }
 
 /// Process and replace a dependency with property values
-pub fn process_dependency(dependency: Dependency) -> Dependency {
+pub fn process_dependency(config: &Config, dependency: Dependency) -> Dependency {
     if dependency.property_mappings.is_none() {
         return dependency.clone();
     };
@@ -28,32 +28,41 @@ pub fn process_dependency(dependency: Dependency) -> Dependency {
     let mut protocol = dependency.protocol;
 
     let props = dependency.property_mappings.clone().unwrap();
+
     //Map Properties
     for prop in props {
         match prop.key.as_str() {
             "name" => {
-                let result = read_value_from_file(&prop.file, &prop.mapping_path);
+                let result = read_value_from_file(
+                    format!("{}/{}",&config.base_dir, &prop.file).as_str(), 
+                    &prop.mapping_path);
                 match result {
                     Ok(name_val) => name = name_val,
                     Err(e) => log::warn!("Failed to map name on prop mapping: {}", e)
                 }
             }
             "version" => {
-                let result = read_value_from_file(&prop.file, &prop.mapping_path);
+                let result = read_value_from_file(
+                    format!("{}/{}",&config.base_dir, &prop.file).as_str(),
+                     &prop.mapping_path);
                 match result {
                     Ok(version_val) => version = version_val,
                     Err(e) => log::warn!("Failed to map version on prop mapping: {}", e)
                 }
             }
             "port" => {
-                let result =read_value_from_file(&prop.file, &prop.mapping_path);
+                let result = read_value_from_file(
+                    format!("{}/{}",&config.base_dir, &prop.file).as_str(),
+                     &prop.mapping_path);
                 match result {
                     Ok(port_val) => port = Some(port_val),
                     Err(e) => log::warn!("Failed to map port on prop mapping: {}", e)
                 }
             }
             "protocol" => {
-                let result =read_value_from_file(&prop.file, &prop.mapping_path);
+                let result = read_value_from_file(
+                    format!("{}/{}",&config.base_dir, &prop.file).as_str(),
+                     &prop.mapping_path);
                 match result {
                     Ok(protcol_val) => protocol = Some(protcol_val),
                     Err(e) => log::warn!("Failed to map protocol on prop mapping: {}", e)
