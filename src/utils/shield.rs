@@ -23,11 +23,11 @@ pub async fn submit_results(
 pub async fn login(config: &Config) -> Result<HeaderMap, Box<dyn std::error::Error>> {
     let auth_url = format!(
         "{}/api/collections/users/auth-with-password",
-        config.pb_server
+        config.shield_server
     );
     let mut params = HashMap::new();
-    params.insert("identity", config.pb_user.clone());
-    params.insert("password", config.pb_pass.clone());
+    params.insert("identity", config.shield_user.clone());
+    params.insert("password", config.shield_pass.clone());
     let response = reqwest::Client::new()
         .post(auth_url)
         .form(&params)
@@ -47,7 +47,7 @@ pub async fn create_app(
     headers: HeaderMap,
     config: &Config,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let url = format!("{}/api/collections/applications/records", config.pb_server);
+    let url = format!("{}/api/collections/applications/records", config.shield_server);
     let response = reqwest::Client::new()
         .post(url)
         .json(&app)
@@ -56,7 +56,7 @@ pub async fn create_app(
         .await?;
     let result_app: Application = response.json().await?;
     let path_name = format!("{}/app.json", RESULT_DIR);
-    write_json_file(path::Path::new(&path_name), &result_app);
+    write_json_file(path::Path::new(&path_name), &result_app)?;
     Ok(())
 }
 
@@ -65,7 +65,7 @@ pub async fn update_app(
     headers: HeaderMap,
     config: &Config,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let url = format!("{}/api/collections/applications/records/{}", config.pb_server, app.id.clone().unwrap());
+    let url = format!("{}/api/collections/applications/records/{}", config.shield_server, app.id.clone().unwrap());
     reqwest::Client::new()
         .patch(url)
         .json(&app)

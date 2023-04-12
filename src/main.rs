@@ -49,7 +49,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let app = npm_mapper::map_application(&config)?;
         let path_name = format!("{}/{}/app.json", config.base_dir, RESULT_DIR);
         shared::write_json_file(path::Path::new(&path_name), &app)?;
-        if config.pb_server != "" {
+
+        if config.shield_server != "" {
             shield::submit_results(&app, &config).await?;
         }
     }else {
@@ -64,9 +65,9 @@ fn read_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
     if path.exists() {
         Ok(Config {
             base_dir: args.path.clone(),
-            pb_server: args.shield_url.clone(),
-            pb_user: args.shield_user.clone(),
-            pb_pass: args.shield_pass.clone(),
+            shield_server: args.shield_url.clone(),
+            shield_user: args.shield_user.clone(),
+            shield_pass: args.shield_pass.clone(),
         })
     } else {
         Err(Box::from("Path Provided does not exsist"))

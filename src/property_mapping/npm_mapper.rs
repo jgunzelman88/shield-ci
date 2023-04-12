@@ -44,23 +44,29 @@ pub struct NpmPackage {
 }
 
 /// Maps the application data from npm.
+/// # Arguments
+///    * config: &Config - Config reference from main. Used to get desired scan path.
 pub fn map_application(config: &Config) -> Result<Application, Box<dyn std::error::Error>> {
     log::debug!("Reading npm package lock file");
-    // Process npm file
     let mut package_lock_file = File::open(format!("{}/package-lock.json", config.base_dir))?;
     let mut package_lock_json = String::new();
     package_lock_file.read_to_string(&mut package_lock_json)?;
     let package_lock: PackageLock = serde_json::from_str(&package_lock_json)?;
+
     log::debug!("Reading npm package file");
     let mut package_file = File::open(format!("{}/package.json", config.base_dir))?;
     let mut package_json = String::new();
     package_file.read_to_string(&mut package_json)?;
     let package: NpmPackage = serde_json::from_str(&package_json)?;
+
     log::debug!("Processing Internal Dependencies ");
-    // Set Dependencies
     let mut inter_deps: Vec<Dependency> = Vec::new();
     for (name, version) in package.dependencies {
-        let version = version;
+        let mut version = version;
+        let lock_verison = get_package_lock_version(&package_lock, &name);
+        if lock_verison.is_some() {
+            version = lock_verison.unwrap().to_string()
+        }
         inter_deps.push(Dependency {
             name: name,
             version: version,
@@ -69,8 +75,10 @@ pub fn map_application(config: &Config) -> Result<Application, Box<dyn std::erro
             protocol: None,
         });
     }
+
     log::debug!("Looking for exsisting app file");
     let current_app = read_applicaiton(config);
+
     log::debug!("Processing External Dependencies");
     let mut external_deps: Vec<Dependency> = Vec::new();
     for exp_dep in current_app.external_dependencies {
@@ -89,14 +97,41 @@ pub fn map_application(config: &Config) -> Result<Application, Box<dyn std::erro
     })
 }
 
-pub fn run_vulnerability_scan(config: &Config, app: &Application, package_lock: &PackageLock) -> Result<DependencyReport, Box<dyn std::error::Error>> {
+/// Get Package lock version from package name
+///    * Used to get the acutual version rather than the semantic version pattern
+fn get_package_lock_version(package_lock: &PackageLock, dependency_name: &str) -> Option<String> {
+    if package_lock.dependencies.is_none() {
+        return None;
+    };
+    let dependencies = package_lock.dependencies.to_owned().unwrap();
+    let dep_option = dependencies.get(dependency_name);
+    if dep_option.is_none() {
+        return None;
+    };
+    return Some(dep_option.unwrap().version.to_owned());
+}
+
+//
+pub fn run_owasp_vulnerability_scan(
+    config: &Config,
+    app: &Application,
+) -> Result<DependencyReport, Box<dyn std::error::Error>> {
     let path = format!("{}/package-lock.json", config.base_dir);
     let owasp = owasp_dep_check::run_owasp_dep_check(config, Some(&path))?;
     let now = std::time::SystemTime::now();
     let mut vulnerabilities: Vec<Vulnerability> = Vec::new();
-    let sub_deps = get_sub_dependencies(&app.internal_dependencies, package_lock);
+
+    log::debug!("Reading npm package lock file");
+    let mut package_lock_file = File::open(format!("{}/package-lock.json", config.base_dir))?;
+    let mut package_lock_json = String::new();
+    package_lock_file.read_to_string(&mut package_lock_json)?;
+    let package_lock: PackageLock = serde_json::from_str(&package_lock_json)?;
+
+    let sub_deps = get_sub_dependencies(&app.internal_dependencies, &package_lock);
     for dep in owasp.dependencies {
-        if dep.vulnerabilities.is_none() {continue;}
+        if dep.vulnerabilities.is_none() {
+            continue;
+        }
         for vul in dep.vulnerabilities.unwrap() {
             let sub_dep = sub_deps.get(&vul.name);
             if sub_dep.is_some() {
@@ -112,12 +147,12 @@ pub fn run_vulnerability_scan(config: &Config, app: &Application, package_lock: 
             }
         }
     }
-    Ok( DependencyReport {
+    Ok(DependencyReport {
         id: None,
         application_id: app.id.clone(),
         application_name: app.name.clone(),
         date: shared::iso_8601(&now),
-        vulnerabilities: vulnerabilities
+        vulnerabilities: vulnerabilities,
     })
 }
 
@@ -213,9 +248,9 @@ mod npm_mapper_tests {
         shared::set_up_logger(true);
         let config = Config {
             base_dir: String::from("./test-data/npm/"),
-            pb_server: String::new(),
-            pb_user: String::new(),
-            pb_pass: String::new(),
+            shield_server: String::new(),
+            shield_user: String::new(),
+            shield_pass: String::new(),
         };
         match map_application(&config) {
             Ok(app) => {
