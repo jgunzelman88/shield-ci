@@ -11,10 +11,10 @@ mod models;
 use models::application;
 use models::config::{Config, RESULT_DIR};
 
-
 mod utils;
 use utils::shield;
 use utils::shared;
+use utils::trivy_utils;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -46,11 +46,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     let tech = application::detect_technologies();
+    let trivy = trivy_utils::run_fs_scan()?;
     if tech.npm {
+        log::debug!("NPM Application Processing ....");
         let app = npm_mapper::map_application()?;
         let app_path_name = format!("{}/{}/app.json", config.base_dir, RESULT_DIR);
         shared::write_json_file(path::Path::new(&app_path_name), &app)?;
+        log::debug!("NPM Dependency Processing ....");
+        let dep_report = npm_mapper::get_dependency_report(&trivy, &app)?;
+        let dep_report_path = format!("{}/{}/dep_report.json", config.base_dir, RESULT_DIR);
+        shared::write_json_file(path::Path::new(&dep_report_path), &dep_report)?;
         if config.shield_server != "" {
+            log::debug!("NPM Submitting Results ....");
             shield::submit_results(&app, &config).await?;
         }
     }else {
