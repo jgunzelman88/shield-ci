@@ -131,8 +131,9 @@ pub fn get_dependency_report(
     })
 }
 
-/// Get Package lock version from package name
-///    * Used to get the acutual version rather than the semantic version pattern
+/// Get Package lock version from package name. Used to get the acutual version rather than the semantic version pattern
+/// # Argument
+///    * dependency_name : name of dependency to get actual version.
 fn get_package_lock_version(dependency_name: &str) -> Option<String> {
     let package_lock = get_package_lock();
     if package_lock.dependencies.is_none() {
@@ -146,6 +147,10 @@ fn get_package_lock_version(dependency_name: &str) -> Option<String> {
     return Some(dep_option.unwrap().version.to_owned());
 }
 
+/// Get a list of parent dependencies given a leaf dependency.
+/// # Arguments
+///    * dependency: leaf dependency to search for.
+///    * app: application to find root dependencies from.
 fn get_parent_dependencies(
     dependency: &str,
     app: &Application,
@@ -226,8 +231,7 @@ fn get_package_lock() -> PackageLock {
     return PACKAGE_LOCK.read().unwrap().clone();
 }
 
-///Reads package-lock.json file and returns the Package lock.
-///   Note: ensure config is configured or default config will be used.
+///Reads package-lock.json file and returns the Package lock. Note: ensure config is configured or default config will be used.
 fn read_package_lock() -> PackageLock {
     let pl = PackageLock {
         dependencies: None,
