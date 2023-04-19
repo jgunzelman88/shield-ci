@@ -14,7 +14,7 @@ We have provided a development Dockerfile for development hear are instuctions t
       (Note: Target folder is a seperate volume to speed up build times due to slow IO performance between VM and Host on MacOs)
 
       * ```sh
-         docker run --name shieldci-dev --mount type=bind,source="$(pwd)"/,target=/home/shieldci/ --mount type=volume,dst=/home/shieldci/target --mount type=volume,dst=/home/shieldci/dependency-check shieldci-dev:latest
+         docker run --name shieldci-dev --mount type=bind,source="$(pwd)"/,target=/home/shieldci/ --mount type=volume,dst=/home/shieldci/target --mount shieldci-dev:latest
          ```
 
 ## Usage

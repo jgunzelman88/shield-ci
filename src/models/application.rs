@@ -1,9 +1,10 @@
 use super::property_mapping::PropertyMapping;
-use crate::models::config::{Config, RESULT_DIR};
+use crate::models::config::RESULT_DIR;
+use crate::utils::shared::get_config;
 
 use serde::{Serialize, Deserialize};
 use serde_json;
-use std::io::{Write, Read};
+use std::io::Read;
 use std::fs;
 use std::path;
 
@@ -49,7 +50,8 @@ pub struct Technologies {
 }
 
 /// Reads the curent application json file
-pub fn read_applicaiton(config: &Config) -> Application {
+pub fn read_applicaiton() -> Application {
+  let config = get_config();
   let mut app_file: fs::File;
   let basic = Application {
       id: None,
@@ -75,7 +77,8 @@ pub fn read_applicaiton(config: &Config) -> Application {
 }
 
 /// Detects standard files that are associated with certain technoloies to allow scraping of data.
-pub fn detect_technologies(config: &Config) -> Technologies{
+pub fn detect_technologies() -> Technologies{
+    let config = get_config();
     let mut tech = Technologies {
       npm: false,
       pip: false,

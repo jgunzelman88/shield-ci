@@ -5,6 +5,7 @@ pub const RESULT_DIR: &str = "./shield-ci";
 /// # Properties
 #[derive(Serialize)]
 #[derive(Deserialize)]
+#[derive(Clone)]
 pub struct Config{
     pub base_dir: String,
     pub shield_server: String,

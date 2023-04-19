@@ -1,5 +1,4 @@
 use serde::{Serialize, Deserialize};
-use super::owasp::Reference;
 
 #[derive(Serialize)]
 #[derive(Deserialize)]
@@ -18,8 +17,12 @@ pub struct DependencyReport {
 #[derive(Clone)]
 pub struct Vulnerability {
     pub name: String,
-    pub path: Option<String>,
+    pub version: String,
+    pub fixed_version: String,
+    pub paths: Vec<String>,
     pub severity: String,
+    pub published: Option<String>,
+    pub updated: Option<String>,
     pub description: Option<String>,
-    pub references: Vec<Reference>
+    pub references: Vec<String>
 }

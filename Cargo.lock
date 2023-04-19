@@ -1427,6 +1427,7 @@ dependencies = [
  "chrono",
  "clap",
  "jsonpath",
+ "lazy_static",
  "log",
  "lopdf 0.29.0",
  "pdf_form",

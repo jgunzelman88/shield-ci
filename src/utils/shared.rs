@@ -1,9 +1,29 @@
 use chrono::prelude::{DateTime, Utc};
-use serde::Serialize;
-use std::fs;
+use lazy_static::lazy_static;
 use log::LevelFilter;
+use serde::Serialize;
 use simple_logger::SimpleLogger;
 use std::io::Write;
+use std::{fs, sync::RwLock};
+use crate::models::config::Config;
+
+lazy_static! {
+    static ref CONFIG: RwLock<Config> = RwLock::new(Config {
+        base_dir: String::from("./"),
+        shield_server: String::new(),
+        shield_user: String::new(),
+        shield_pass: String::new()
+    });
+}
+
+pub fn update_config(update: Config) {
+    let mut settings = CONFIG.write().unwrap();
+    *settings = update;
+}
+
+pub fn get_config() -> Config {
+    return CONFIG.read().unwrap().clone();
+}
 
 pub fn iso_8601(time: &std::time::SystemTime) -> String {
     let dt: DateTime<Utc> = time.clone().into();

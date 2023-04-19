@@ -11,6 +11,7 @@ mod models;
 use models::application;
 use models::config::{Config, RESULT_DIR};
 
+
 mod utils;
 use utils::shield;
 use utils::shared;
@@ -38,18 +39,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config: Config;
     log::info!("🛡️ Shield CI Processing ...");
     match read_config(&args) {
-        Ok(val) => config = val,
+        Ok(val) => {config = val.clone(); shared::update_config(val)},
         Err(e) => {
             log::error!("Failed to configure: {}", e);
             exit(1)
         }
     }
-    let tech = application::detect_technologies(&config);
+    let tech = application::detect_technologies();
     if tech.npm {
-        let app = npm_mapper::map_application(&config)?;
-        let path_name = format!("{}/{}/app.json", config.base_dir, RESULT_DIR);
-        shared::write_json_file(path::Path::new(&path_name), &app)?;
-
+        let app = npm_mapper::map_application()?;
+        let app_path_name = format!("{}/{}/app.json", config.base_dir, RESULT_DIR);
+        shared::write_json_file(path::Path::new(&app_path_name), &app)?;
         if config.shield_server != "" {
             shield::submit_results(&app, &config).await?;
         }
