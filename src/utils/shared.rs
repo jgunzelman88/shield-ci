@@ -25,11 +25,16 @@ pub fn get_config() -> Config {
     return CONFIG.read().unwrap().clone();
 }
 
+/// Returns the ISO_8601 timestamp from system time.
 pub fn iso_8601(time: &std::time::SystemTime) -> String {
     let dt: DateTime<Utc> = time.clone().into();
     return dt.to_rfc3339();
 }
 
+/// Writes object to a JSON file
+/// Arguments: 
+///    * path: path to wirte the file.
+///    * object: object to write.
 pub fn write_json_file<T: ?Sized + Serialize>(
     path: &std::path::Path,
     object: &T,
