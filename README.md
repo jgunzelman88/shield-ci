@@ -84,6 +84,6 @@ Configuration of shield-ci can be accomplished via CLI arguments or environment 
 | Parameter | ENV Variable | CLI Argument | Description |
 | --- | --- | --- | --- |
 | Path | SHIELD_CI_SCAN_DIR | --path \<PATH> | Scan path for application to process.
-| Shield URL | SHIELD_URL | --shield-url <SHIELD_URL> | URL to Shield web application.
-| Shield User | SHIELD_USER | --shield-user <SHIELD_USER>  | Shield user name to access Shield web API
-| Shield URL | SHIELD_PASS | --shield-pass <SHIELD_PASS> | Shield password to access Shield web API
+| Shield URL | SHIELD_URL | --shield-url \<SHIELD_URL> | URL to Shield web application.
+| Shield User | SHIELD_USER | --shield-user \<SHIELD_USER>  | Shield user name to access Shield web API
+| Shield URL | SHIELD_PASS | --shield-pass \<SHIELD_PASS> | Shield password to access Shield web API
