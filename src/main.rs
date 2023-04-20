@@ -38,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     shared::set_up_logger(verbose);
     let config: Config;
     log::info!("🛡️ Shield CI Processing ...");
-    match read_config(&args) {
+    match init_config(&args) {
         Ok(val) => {config = val.clone(); shared::update_config(val)},
         Err(e) => {
             log::error!("Failed to configure: {}", e);
@@ -67,7 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn read_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
+fn init_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
     // Base Dir handling
     let base_dir: String;
     if args.path == "./" {
