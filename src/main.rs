@@ -1,6 +1,6 @@
 use clap::Parser;
 use log;
-use std::path;
+use std::{path, env};
 use std::process::exit;
 use tokio;
 
@@ -68,10 +68,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn read_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
-    let path = path::Path::new(&args.path);
+    // Base Dir handling
+    let base_dir: String;
+    if args.path == "./" {
+        let base_path = std::env::var_os("SHIELD_CI_SCAN_DIR");
+        if base_path.is_some() {
+            base_dir = String::from(base_path.unwrap().to_string_lossy());
+        } else {
+            base_dir = String::from(&args.path);
+        }
+    }else {
+        base_dir = String::from(&args.path);
+    }
+    // If path does not exsist throw error
+    let path = path::Path::new(&base_dir);
     if path.exists() {
         Ok(Config {
-            base_dir: args.path.clone(),
+            base_dir: base_dir,
             shield_server: args.shield_url.clone(),
             shield_user: args.shield_user.clone(),
             shield_pass: args.shield_pass.clone(),
