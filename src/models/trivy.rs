@@ -67,7 +67,7 @@ pub struct Result {
     pub Target: String,
     pub Class: String,
     pub Type: String,
-    pub Vulnerabilities: Vec<Vulnerability>,
+    pub Vulnerabilities: Option<Vec<Vulnerability>>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -77,5 +77,5 @@ pub struct TrivyReport {
     pub ArtifactName: String,
     pub ArtifactType: String,
     pub Metadata: Metadata,
-    pub Results: Vec<Result>,
+    pub Results: Option<Vec<Result>>,
 }

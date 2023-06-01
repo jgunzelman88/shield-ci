@@ -13,6 +13,7 @@ use std::path;
 pub struct Application {
     pub id: Option<String>,
     pub name: String,
+    pub project: String,
     pub maintainer: Option<String>,
     pub description: Option<String>,
     pub parent: Option<String>,
@@ -56,6 +57,7 @@ pub fn read_applicaiton() -> Application {
   let basic = Application {
       id: None,
       name: String::new(),
+      project: String::new(),
       parent: None,
       description: None,
       maintainer: None,

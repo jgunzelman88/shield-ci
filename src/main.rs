@@ -1,7 +1,7 @@
 use clap::Parser;
 use log;
-use std::{path, env};
 use std::process::exit;
+use std::path;
 use tokio;
 
 mod property_mapping;
@@ -12,13 +12,19 @@ use models::application;
 use models::config::{Config, RESULT_DIR};
 
 mod utils;
-use utils::shield;
 use utils::shared;
+use utils::shield;
 use utils::trivy_utils;
+
+use crate::models::application::Application;
+use crate::models::dependecy_report::DependencyReport;
+use crate::models::trivy::TrivyReport;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
+    #[arg(long, default_value_t = String::from(""))]
+    project_id: String,
     #[arg(long, default_value_t = String::from("./"))]
     path: String,
     #[arg(short, long, default_value_t = false)]
@@ -32,39 +38,62 @@ pub struct Args {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main(){
     let args = Args::parse();
     let verbose = args.verbose;
     shared::set_up_logger(verbose);
     let config: Config;
     log::info!("🛡️ Shield CI Processing ...");
     match init_config(&args) {
-        Ok(val) => {config = val.clone(); shared::update_config(val)},
+        Ok(val) => {
+            config = val.clone();
+            shared::update_config(val)
+        }
         Err(e) => {
             log::error!("Failed to configure: {}", e);
             exit(1)
         }
     }
     let tech = application::detect_technologies();
-    let trivy = trivy_utils::run_fs_scan()?;
-    if tech.npm {
-        log::debug!("NPM Application Processing ....");
-        let app = npm_mapper::map_application()?;
-        let app_path_name = format!("{}/{}/app.json", config.base_dir, RESULT_DIR);
-        shared::write_json_file(path::Path::new(&app_path_name), &app)?;
-        log::debug!("NPM Dependency Processing ....");
-        let dep_report = npm_mapper::get_dependency_report(&trivy, &app)?;
-        let dep_report_path = format!("{}/{}/dep_report.json", config.base_dir, RESULT_DIR);
-        shared::write_json_file(path::Path::new(&dep_report_path), &dep_report)?;
-        if config.shield_server != "" {
-            log::debug!("NPM Submitting Results ....");
-            shield::submit_results(&app, &config).await?;
+    let trivy: TrivyReport;
+    match trivy_utils::run_fs_scan() {
+        Ok(rpt) => trivy = rpt,
+        Err(e) => {
+            log::error!("Trivy failed! {}", e);
+            exit(1);
         }
-    }else {
+    }
+    if tech.npm {
+        log::info!("NPM Application Processing ....");
+        let app: Application;
+        match npm_mapper::map_application(&config.project_id){
+            Ok(value) => app = value,
+            Err(e) => {
+                log::error!("Map application Failed {}", e);
+                exit(1);
+            }
+        }
+        let app_path_name = format!("{}/{}/app.json", config.base_dir, RESULT_DIR);
+        shared::write_json_file(path::Path::new(&app_path_name), &app);
+        log::info!("NPM Dependency Processing ....");
+        let dep_report: DependencyReport;
+        match npm_mapper::get_dependency_report(&trivy, &app) {
+            Ok(value) => dep_report = value,
+            Err(e) => {
+                log::error!("Failed to get dep report {}", e);
+                exit(1);
+            }
+        }
+        let dep_report_path = format!("{}/{}/dep_report.json", config.base_dir, RESULT_DIR);
+        shared::write_json_file(path::Path::new(&dep_report_path), &dep_report);
+        if config.shield_server != "" {
+            log::info!("NPM Submitting Results ....");
+            shield::submit_results(&app, &config).await;
+        }
+    } else {
         log::info!("No compatable technology found!")
     }
     log::info!("Finished!!");
-    Ok(())
 }
 
 fn init_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
@@ -77,18 +106,66 @@ fn init_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
         } else {
             base_dir = String::from(&args.path);
         }
-    }else {
+    } else {
         base_dir = String::from(&args.path);
+    }
+    // Project id
+    let mut project_id = String::from(&args.project_id);
+    if args.project_id == "" {
+        let project_id_env = std::env::var_os("PROJECT_ID");
+        if project_id_env.is_some() {
+            project_id = String::from(project_id_env.unwrap().to_string_lossy());
+        }
+    }
+    // Shield URL
+    let mut shield_url = String::from(&args.shield_url);
+    if args.shield_url == "" {
+        let shield_url_env = std::env::var_os("SHIELD_URL");
+        if shield_url_env.is_some() {
+            shield_url = String::from(shield_url_env.unwrap().to_string_lossy());
+        }
+    }
+    // Shield User
+    let mut shield_user = String::from(&args.shield_user);
+    if args.shield_user == "" {
+        let shield_user_env = std::env::var_os("SHIELD_USER");
+        if shield_user_env.is_some() {
+            shield_user = String::from(shield_user_env.unwrap().to_string_lossy());
+        }
+    }
+    // Shield Password
+    let mut shield_pass = String::from(&args.shield_pass);
+    if args.shield_pass == "" {
+        let shield_pass_env = std::env::var_os("SHIELD_PASS");
+        if shield_pass_env.is_some() {
+            shield_pass = String::from(shield_pass_env.unwrap().to_string_lossy());
+        }
     }
     // If path does not exsist throw error
     let path = path::Path::new(&base_dir);
+
     if path.exists() {
-        Ok(Config {
+        let config = Config {
             base_dir: base_dir,
-            shield_server: args.shield_url.clone(),
-            shield_user: args.shield_user.clone(),
-            shield_pass: args.shield_pass.clone(),
-        })
+            project_id: project_id.clone(),
+            shield_server: shield_url.clone(),
+            shield_user: shield_user.clone(),
+            shield_pass: shield_pass.clone(),
+        };
+        let redact: String;
+        if shield_pass != "" {
+            redact = String::from("******");
+        }else {
+            redact = String::from("NOT SET!!!")
+        }
+        log::debug!(
+            "Config:\n
+            project_id: {},
+            shield_URL: {},
+            user: {},
+            pass: {}",
+             project_id, shield_url, shield_user, redact);
+        Ok(config)
     } else {
         Err(Box::from("Path Provided does not exsist"))
     }

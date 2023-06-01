@@ -20,7 +20,11 @@ We have provided a development Dockerfile for development hear are instuctions t
       (Note: Target folder is a seperate volume to speed up build times due to slow IO performance between VM and Host on MacOs)
 
       ```sh
-      docker run --name shieldci-dev --mount type=bind,source="$(pwd)"/,target=/home/shieldci/ --mount type=volume,dst=/home/shieldci/target --mount shieldci-dev:latest
+      docker run \
+      --name shieldci-dev \
+      --mount type=bind,source="$(pwd)"/,target=/home/shieldci/ \
+      --mount type=volume,dst=/home/shieldci/target \
+      shieldci-dev:latest
       ```
 
 ### Standalone
@@ -48,7 +52,15 @@ There are 2 options for running shield-ci.  We have a docker container for use i
    2. Run container
 
       ```sh
-      docker run --name shield-ci --mount type=bind,source=<SCAN_DIR>,target=/home/shieldci/scan shield-ci:latest
+      docker run \
+      --env SHIELD_VERBOSE=true \
+      --env PROJECT_ID=<PROJECT_ID>
+      --env SHEILD_URL=<SHIELD_URL> \
+      --env SHIELD_USER=<SHIELD_USER> \
+      --env SHIELD_PASS=<SHIELD_PASS> \
+      --
+      --mount type=bind,source=$(pwd),target=/home/shieldci/scan \
+      shield-ci:latest
       ```
 
 ### CLI
@@ -84,6 +96,7 @@ Configuration of shield-ci can be accomplished via CLI arguments or environment 
 | Parameter | ENV Variable | CLI Argument | Description |
 | --- | --- | --- | --- |
 | Path | SHIELD_CI_SCAN_DIR | --path \<PATH> | Scan path for application to process.
+| Project Id | PROJECT_ID| --project-id \<PROJECT_ID>| Project Id for application
 | Shield URL | SHIELD_URL | --shield-url \<SHIELD_URL> | URL to Shield web application.
 | Shield User | SHIELD_USER | --shield-user \<SHIELD_USER>  | Shield user name to access Shield web API
 | Shield URL | SHIELD_PASS | --shield-pass \<SHIELD_PASS> | Shield password to access Shield web API

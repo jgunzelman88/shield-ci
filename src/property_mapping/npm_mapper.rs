@@ -1,7 +1,7 @@
 use crate::models::application::{read_applicaiton, Application, Dependency};
 use crate::models::dependecy_report::{DependencyReport, Vulnerability};
 use crate::models::property_mapping;
-use crate::models::trivy::TrivyReport;
+use crate::models::trivy;
 use crate::utils::shared::{get_config, iso_8601};
 
 use lazy_static::lazy_static;
@@ -50,7 +50,7 @@ lazy_static! {
 /// Maps the application data from npm.
 /// # Arguments
 ///    * config: &Config - Config reference from main. Used to get desired scan path.
-pub fn map_application() -> Result<Application, Box<dyn std::error::Error>> {
+pub fn map_application(project: &str) -> Result<Application, Box<dyn std::error::Error>> {
     log::debug!("Reading npm package lock file");
     let config = get_config();
     let package_lock = get_package_lock();
@@ -89,6 +89,7 @@ pub fn map_application() -> Result<Application, Box<dyn std::error::Error>> {
     Ok(Application {
         id: current_app.id,
         name: package_lock.name,
+        project: String::from(project),
         description: package.description,
         maintainer: None,
         parent: current_app.parent,
@@ -99,26 +100,32 @@ pub fn map_application() -> Result<Application, Box<dyn std::error::Error>> {
 }
 
 pub fn get_dependency_report(
-    trivy: &TrivyReport,
+    trivy: &trivy::TrivyReport,
     app: &Application,
 ) -> Result<DependencyReport, Box<dyn std::error::Error>> {
     let now = std::time::SystemTime::now();
     let mut vulnerabilities: Vec<Vulnerability> = Vec::new();
-    for result in trivy.Results.to_owned() {
-        if result.Type == "npm" {
-            for vul in result.Vulnerabilities {
-                let paths = get_parent_dependencies(&vul.PkgName, app)?;
-                vulnerabilities.push(Vulnerability {
-                    name: vul.PkgName,
-                    version: vul.InstalledVersion,
-                    fixed_version: vul.FixedVersion,
-                    paths: paths,
-                    severity: vul.Severity,
-                    published: vul.PublishedDate,
-                    updated: vul.LastModifiedDate,
-                    description: Some(vul.Description.to_owned()),
-                    references: Vec::new(),
-                })
+    if trivy.Results.is_some() {
+        for result in trivy.Results.to_owned().unwrap() {
+            if result.Type == "npm" {
+                let mut trivy_vuls: Vec<trivy::Vulnerability> = Vec::new();
+                if result.Vulnerabilities.is_some() {
+                    trivy_vuls = result.Vulnerabilities.unwrap();
+                }
+                for vul in trivy_vuls {
+                    let paths = get_parent_dependencies(&vul.PkgName, app)?;
+                    vulnerabilities.push(Vulnerability {
+                        name: vul.PkgName,
+                        version: vul.InstalledVersion,
+                        fixed_version: vul.FixedVersion,
+                        paths: paths,
+                        severity: vul.Severity,
+                        published: vul.PublishedDate,
+                        updated: vul.LastModifiedDate,
+                        description: Some(vul.Description.to_owned()),
+                        references: Vec::new(),
+                    })
+                }
             }
         }
     }
@@ -273,10 +280,11 @@ mod npm_mapper_tests {
     use crate::utils::trivy_utils;
     use std::path::Path;
 
-    fn set_up(){
+    fn set_up() {
         shared::set_up_logger(true);
         let config = Config {
             base_dir: String::from("./test-data/npm/"),
+            project_id: String::from("12345"),
             shield_server: String::new(),
             shield_user: String::new(),
             shield_pass: String::new(),
@@ -287,10 +295,9 @@ mod npm_mapper_tests {
     #[test]
     fn test_meta_data() {
         set_up();
-        match map_application()  {
+        match map_application("12345") {
             Ok(app) => {
                 shared::write_json_file(Path::new("./test-data/npm/p-shield/app.json"), &app)
-                    .unwrap()
             }
             Err(e) => assert!(false, "Failed to map application {}", e),
         }
@@ -299,7 +306,7 @@ mod npm_mapper_tests {
     #[test]
     fn test_find_root_dep() {
         set_up();
-        let app = map_application().unwrap();
+        let app = map_application("122345").unwrap();
         let paths = get_parent_dependencies("ansi-html", &app).unwrap();
         let path_string = serde_json::to_string_pretty(&paths).unwrap();
         log::info!("result :\n{}", path_string);
@@ -311,7 +318,7 @@ mod npm_mapper_tests {
     #[test]
     fn test_get_dep_report() {
         set_up();
-        let app = map_application().unwrap();
+        let app = map_application("1235").unwrap();
         let trivy = trivy_utils::run_fs_scan().unwrap();
         let dep_report = get_dependency_report(&trivy, &app).unwrap();
         let path_string = serde_json::to_string_pretty(&dep_report).unwrap();

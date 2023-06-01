@@ -29,6 +29,7 @@ mod trivy_tests {
         shared::set_up_logger(true);
         let config = Config {
             base_dir: String::from("./test-data/npm/"),
+            project_id: String::from("12345"),
             shield_server: String::new(),
             shield_user: String::new(),
             shield_pass: String::new(),
