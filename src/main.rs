@@ -1,7 +1,7 @@
 use clap::Parser;
 use log;
-use std::process::exit;
 use std::path;
+use std::process::exit;
 use tokio;
 
 mod property_mapping;
@@ -38,7 +38,7 @@ pub struct Args {
 }
 
 #[tokio::main]
-async fn main(){
+async fn main() {
     let args = Args::parse();
     let verbose = args.verbose;
     shared::set_up_logger(verbose);
@@ -66,7 +66,7 @@ async fn main(){
     if tech.npm {
         log::info!("NPM Application Processing ....");
         let app: Application;
-        match npm_mapper::map_application(&config.project_id){
+        match npm_mapper::map_application(&config.project_id) {
             Ok(value) => app = value,
             Err(e) => {
                 log::error!("Map application Failed {}", e);
@@ -88,7 +88,7 @@ async fn main(){
         shared::write_json_file(path::Path::new(&dep_report_path), &dep_report);
         if config.shield_server != "" {
             log::info!("NPM Submitting Results ....");
-            shield::submit_results(&app, &config).await;
+            shield::submit_results(&app, &dep_report, &config).await;
         }
     } else {
         log::info!("No compatable technology found!")
@@ -155,7 +155,7 @@ fn init_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
         let redact: String;
         if shield_pass != "" {
             redact = String::from("******");
-        }else {
+        } else {
             redact = String::from("NOT SET!!!")
         }
         log::debug!(
@@ -164,7 +164,11 @@ fn init_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
             shield_URL: {},
             user: {},
             pass: {}",
-             project_id, shield_url, shield_user, redact);
+            project_id,
+            shield_url,
+            shield_user,
+            redact
+        );
         Ok(config)
     } else {
         Err(Box::from("Path Provided does not exsist"))

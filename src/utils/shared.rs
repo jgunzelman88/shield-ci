@@ -80,6 +80,7 @@ pub fn write_json_file<T: ?Sized + Serialize>(
             return;
         }
     }
+    log::debug!("Wrote File {}",path.as_os_str().to_string_lossy());
 }
 
 pub fn set_up_logger(verbose: bool) {
