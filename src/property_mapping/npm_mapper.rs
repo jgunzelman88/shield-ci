@@ -130,10 +130,11 @@ pub fn get_dependency_report(
         }
     }
     Ok(DependencyReport {
-        id: app.id.to_owned(),
+        id: None,
         application_name: app.name.to_owned(),
         date: iso_8601(&now),
-        application_id: None,
+        application_id: app.id.to_owned(),
+        project: app.project.to_owned(),
         vulnerabilities: vulnerabilities,
     })
 }

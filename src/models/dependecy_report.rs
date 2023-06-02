@@ -3,12 +3,12 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize)]
 #[derive(Deserialize)]
 #[derive(Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct DependencyReport {
     pub id: Option<String>,
     pub application_name: String,
-    pub date: String,
     pub application_id: Option<String>,
+    pub project: String,
+    pub date: String,
     pub vulnerabilities: Vec<Vulnerability>
 }
 
