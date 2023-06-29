@@ -49,7 +49,7 @@ pub struct Vulnerability {
     pub PkgID: String,
     pub PkgName: String,
     pub InstalledVersion: String,
-    pub FixedVersion: String,
+    pub FixedVersion: Option<String>,
     pub SeveritySource: String,
     pub PrimaryURL: String,
     pub DataSource: DataSource,

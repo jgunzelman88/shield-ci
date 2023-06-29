@@ -15,7 +15,7 @@ VOLUME [ "/home/shieldci/scan" ] scan
 ENV SHIELD_CI_SCAN_DIR="/home/shieldci/scan"
 
 # Install trivy
-RUN rpm -ivh https://github.com/aquasecurity/trivy/releases/download/v0.39.1/trivy_0.39.1_Linux-64bit.rpm
+RUN rpm -ivh https://github.com/aquasecurity/trivy/releases/download/v0.42.1/trivy_0.42.1_Linux-64bit.rpm
 
 # Copy EXE
 COPY --from=builder /shieldci/target/debug/shieldci /home/shieldci/

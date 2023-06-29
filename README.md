@@ -54,28 +54,23 @@ There are 2 options for running shield-ci.  We have a docker container for use i
       ```sh
       docker run \
       --env SHIELD_VERBOSE=true \
-      --env PROJECT_ID=<PROJECT_ID>
-      --env SHEILD_URL=<SHIELD_URL> \
+      --env PROJECT_ID=<PROJECT_ID> \
+      --env SHIELD_URL=<SHIELD_URL> \
       --env SHIELD_USER=<SHIELD_USER> \
       --env SHIELD_PASS=<SHIELD_PASS> \
-      --
+      --env TRIVY_TIMEOUT_SEC=600s \
       --mount type=bind,source=$(pwd),target=/home/shieldci/scan \
       shield-ci:latest
       ```
-
-### CLI
-
-#### Install
-
-This component requires Trivy security scanner. [https://trivy.dev/](https://trivy.dev/) Install before using
-
-#### Usage
+### CLI Usage
 
 ```sh
 Usage: shieldci [OPTIONS]
+
 Options:
+      --project-id <PROJECT_ID>    [default: ]
       --path <PATH>                [default: ./]
-  -v, --verbose
+  -v, --verbose                    
       --shield-url <SHIELD_URL>    [default: ]
       --shield-user <SHIELD_USER>  [default: ]
       --shield-pass <SHIELD_PASS>  [default: ]
@@ -84,6 +79,16 @@ Options:
 ```
 
 ---
+- Run CLI
+   ```sh
+
+   ```
+
+#### Install
+
+This component requires Trivy security scanner. [https://trivy.dev/](https://trivy.dev/) Install before using
+
+
 
 ## Configuration
 

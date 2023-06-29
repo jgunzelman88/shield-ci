@@ -2,7 +2,7 @@ use crate::models::application::{read_applicaiton, Application, Dependency};
 use crate::models::dependecy_report::{DependencyReport, Vulnerability};
 use crate::models::property_mapping;
 use crate::models::trivy;
-use crate::utils::shared::{get_config, iso_8601};
+use crate::utils::shared::{get_config};
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -103,7 +103,6 @@ pub fn get_dependency_report(
     trivy: &trivy::TrivyReport,
     app: &Application,
 ) -> Result<DependencyReport, Box<dyn std::error::Error>> {
-    let now = std::time::SystemTime::now();
     let mut vulnerabilities: Vec<Vulnerability> = Vec::new();
     if trivy.Results.is_some() {
         for result in trivy.Results.to_owned().unwrap() {
@@ -132,7 +131,6 @@ pub fn get_dependency_report(
     Ok(DependencyReport {
         id: None,
         application_name: app.name.to_owned(),
-        date: iso_8601(&now),
         application_id: app.id.to_owned(),
         project: app.project.to_owned(),
         vulnerabilities: vulnerabilities,

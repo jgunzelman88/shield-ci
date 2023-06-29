@@ -37,6 +37,7 @@ pub async fn submit_results(app: &Application, report: &DependencyReport, config
     }
     let mut appended_report = report.clone();
     appended_report.application_id = Some(app_id);
+    appended_report.vulnerabilities = report.vulnerabilities.clone();
     match push_report(&appended_report, &token, config).await {
         Ok(_) => {
             log::info!("Added app successfully");
@@ -60,8 +61,14 @@ pub async fn login(config: &Config) -> Result<HeaderMap, Box<dyn std::error::Err
         .json(&params)
         .send()
         .await?;
-    let auth: Value = response.json().await?;
-    let token = auth.get("token").unwrap().as_str().unwrap();
+    let auth_text = response.text().await?;
+    let auth: Value = serde_json::from_str(&auth_text)?;
+    let valid_token = auth.get("token");
+    if valid_token.is_none() {
+        let msg = String::from(&auth_text);
+        return Err(Box::from(msg));
+    }
+    let token = valid_token.unwrap().as_str().unwrap();
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, HeaderValue::from_str(&token).unwrap());
     headers.insert(

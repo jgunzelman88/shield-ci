@@ -25,7 +25,7 @@ use crate::models::trivy::TrivyReport;
 pub struct Args {
     #[arg(long, default_value_t = String::from(""))]
     project_id: String,
-    #[arg(long, default_value_t = String::from("./"))]
+    #[arg(long, default_value_t = String::from("."))]
     path: String,
     #[arg(short, long, default_value_t = false)]
     verbose: bool,

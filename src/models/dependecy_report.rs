@@ -8,7 +8,6 @@ pub struct DependencyReport {
     pub application_name: String,
     pub application_id: Option<String>,
     pub project: String,
-    pub date: String,
     pub vulnerabilities: Vec<Vulnerability>
 }
 
@@ -18,7 +17,7 @@ pub struct DependencyReport {
 pub struct Vulnerability {
     pub name: String,
     pub version: String,
-    pub fixed_version: String,
+    pub fixed_version: Option<String>,
     pub paths: Vec<String>,
     pub severity: String,
     pub published: Option<String>,
