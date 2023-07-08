@@ -20,6 +20,7 @@ pub struct Application {
     pub subcomponents: Option<Vec::<String>>,
     pub internal_dependencies: Vec::<Dependency>,
     pub external_dependencies: Vec::<Dependency>,
+    pub dependency_sets: Vec::<DependencySet>,
 }
 
 #[derive(Serialize)]
@@ -31,6 +32,14 @@ pub struct Dependency {
     pub port: Option<String>,
     pub protocol: Option<String>,
     pub property_mappings: Option<Vec::<PropertyMapping>>
+}
+
+#[derive(Serialize)]
+#[derive(Deserialize)]
+pub struct DependencySet {
+  pub name: Option<String>,
+  pub source: String,
+  pub dependencies: Vec<Dependency>
 }
 
 #[derive(Serialize)]
@@ -64,6 +73,7 @@ pub fn read_applicaiton() -> Application {
       subcomponents: None,
       internal_dependencies: Vec::new(),
       external_dependencies: Vec::new(),
+      dependency_sets: Vec::new()
   };
   match fs::File::open(format!("{}/{}/app.json", config.base_dir, RESULT_DIR)) {
       Ok(file) => app_file = file,

@@ -9,15 +9,12 @@ use property_mapping::npm_mapper;
 
 mod models;
 use models::application;
-use models::config::{Config, RESULT_DIR};
+use models::config::Config;
 
 mod utils;
 use utils::shared;
-use utils::shield;
 use utils::trivy_utils;
 
-use crate::models::application::Application;
-use crate::models::dependecy_report::DependencyReport;
 use crate::models::trivy::TrivyReport;
 
 #[derive(Parser, Debug)]
@@ -64,32 +61,7 @@ async fn main() {
         }
     }
     if tech.npm {
-        log::info!("NPM Application Processing ....");
-        let app: Application;
-        match npm_mapper::map_application(&config.project_id) {
-            Ok(value) => app = value,
-            Err(e) => {
-                log::error!("Map application Failed {}", e);
-                exit(1);
-            }
-        }
-        let app_path_name = format!("{}/{}/app.json", config.base_dir, RESULT_DIR);
-        shared::write_json_file(path::Path::new(&app_path_name), &app);
-        log::info!("NPM Dependency Processing ....");
-        let dep_report: DependencyReport;
-        match npm_mapper::get_dependency_report(&trivy, &app) {
-            Ok(value) => dep_report = value,
-            Err(e) => {
-                log::error!("Failed to get dep report {}", e);
-                exit(1);
-            }
-        }
-        let dep_report_path = format!("{}/{}/dep_report.json", config.base_dir, RESULT_DIR);
-        shared::write_json_file(path::Path::new(&dep_report_path), &dep_report);
-        if config.shield_server != "" {
-            log::info!("NPM Submitting Results ....");
-            shield::submit_results(&app, &dep_report, &config).await;
-        }
+        npm_mapper::process_npm(&config, &trivy).await;
     } else {
         log::info!("No compatable technology found!")
     }

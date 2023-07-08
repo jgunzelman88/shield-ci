@@ -25,3 +25,4 @@ pub struct Vulnerability {
     pub description: Option<String>,
     pub references: Vec<String>
 }
+

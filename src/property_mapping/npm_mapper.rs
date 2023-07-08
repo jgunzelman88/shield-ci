@@ -1,14 +1,18 @@
-use crate::models::application::{read_applicaiton, Application, Dependency};
+use crate::models::application::{read_applicaiton, Application, Dependency, DependencySet};
+use crate::models::config::{Config, RESULT_DIR};
 use crate::models::dependecy_report::{DependencyReport, Vulnerability};
 use crate::models::property_mapping;
 use crate::models::trivy;
-use crate::utils::shared::{get_config};
+use crate::utils::shared::{self, get_config};
+use crate::utils::shield;
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Read;
+use std::path;
+use std::process::exit;
 use std::sync::RwLock;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -37,16 +41,48 @@ pub struct PackageLock {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct NpmPackage {
     pub name: String,
     pub description: Option<String>,
     pub dependencies: HashMap<String, String>,
+    pub dev_dependencies: HashMap<String, String>, 
     pub version: String,
 }
 
 lazy_static! {
     static ref PACKAGE_LOCK: RwLock<PackageLock> = RwLock::new(read_package_lock());
 }
+
+pub async fn process_npm(config: &Config, trivy: &trivy::TrivyReport) {
+    log::info!("NPM Application Processing ....");
+    let app: Application;
+    match map_application(&config.project_id) {
+        Ok(value) => app = value,
+        Err(e) => {
+            log::error!("Map application Failed {}", e);
+            exit(1);
+        }
+    }
+    let app_path_name = format!("{}/{}/app.json", config.base_dir, RESULT_DIR);
+    shared::write_json_file(path::Path::new(&app_path_name), &app);
+    log::info!("NPM Dependency Processing ....");
+    let dep_report: DependencyReport;
+    match get_dependency_report(&trivy, &app) {
+        Ok(value) => dep_report = value,
+        Err(e) => {
+            log::error!("Failed to get dep report {}", e);
+            exit(1);
+        }
+    }
+    let dep_report_path = format!("{}/{}/dep_report.json", config.base_dir, RESULT_DIR);
+    shared::write_json_file(path::Path::new(&dep_report_path), &dep_report);
+    if config.shield_server != "" {
+        log::info!("NPM Submitting Results ....");
+        shield::submit_results(&app, &dep_report, &config).await;
+    }
+}
+
 /// Maps the application data from npm.
 /// # Arguments
 ///    * config: &Config - Config reference from main. Used to get desired scan path.
@@ -60,15 +96,32 @@ pub fn map_application(project: &str) -> Result<Application, Box<dyn std::error:
     package_file.read_to_string(&mut package_json)?;
     let package: NpmPackage = serde_json::from_str(&package_json)?;
 
-    log::debug!("Processing Internal Dependencies ");
-    let mut inter_deps: Vec<Dependency> = Vec::new();
+    log::debug!("Processing Prod Dependencies ");
+    let mut prod_deps: Vec<Dependency> = Vec::new();
     for (name, version) in package.dependencies {
         let mut version = version;
         let lock_verison = get_package_lock_version(&name);
         if lock_verison.is_some() {
             version = lock_verison.unwrap().to_string()
         }
-        inter_deps.push(Dependency {
+        prod_deps.push(Dependency {
+            name: name,
+            version: version,
+            port: None,
+            property_mappings: None,
+            protocol: None,
+        });
+    }
+
+    log::debug!("Processing Dev Dependencies ");
+    let mut dev_deps: Vec<Dependency> = Vec::new();
+    for (name, version) in package.dev_dependencies {
+        let mut version = version;
+        let lock_verison = get_package_lock_version(&name);
+        if lock_verison.is_some() {
+            version = lock_verison.unwrap().to_string()
+        }
+        dev_deps.push(Dependency {
             name: name,
             version: version,
             port: None,
@@ -86,6 +139,17 @@ pub fn map_application(project: &str) -> Result<Application, Box<dyn std::error:
         log::info!("Processing {}", &exp_dep.name);
         external_deps.push(property_mapping::process_dependency(&config, exp_dep));
     }
+    let mut dependecy_sets: Vec<DependencySet> = Vec::new();
+    dependecy_sets.push(DependencySet {
+        name: Some(String::from("Production")),
+        source: String::from("package.json"),
+        dependencies: dev_deps.clone(),
+    });
+    dependecy_sets.push(DependencySet {
+        name: Some(String::from("Production")),
+        source: String::from("package.json"),
+        dependencies: dev_deps.clone(),
+    });
     Ok(Application {
         id: current_app.id,
         name: package_lock.name,
@@ -94,8 +158,9 @@ pub fn map_application(project: &str) -> Result<Application, Box<dyn std::error:
         maintainer: None,
         parent: current_app.parent,
         subcomponents: current_app.subcomponents,
-        internal_dependencies: inter_deps,
+        internal_dependencies: dev_deps,
         external_dependencies: external_deps,
+        dependency_sets: dependecy_sets,
     })
 }
 

@@ -89,7 +89,6 @@ Options:
 This component requires Trivy security scanner. [https://trivy.dev/](https://trivy.dev/) Install before using
 
 
-
 ## Configuration
 
 ---
