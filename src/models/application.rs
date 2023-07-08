@@ -122,4 +122,4 @@ pub fn detect_technologies() -> Technologies{
       tech.docker = true
     }
     return tech;
-  }  
+  }

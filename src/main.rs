@@ -4,8 +4,8 @@ use std::path;
 use std::process::exit;
 use tokio;
 
-mod property_mapping;
-use property_mapping::npm_mapper;
+mod language_mapping;
+use language_mapping::npm_mapper;
 
 mod models;
 use models::application;

@@ -146,7 +146,7 @@ pub fn map_application(project: &str) -> Result<Application, Box<dyn std::error:
         dependencies: dev_deps.clone(),
     });
     dependecy_sets.push(DependencySet {
-        name: Some(String::from("Production")),
+        name: Some(String::from("Development")),
         source: String::from("package.json"),
         dependencies: dev_deps.clone(),
     });
