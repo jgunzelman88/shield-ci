@@ -1,11 +1,37 @@
 {
-  "name": "ossblocks",
+  "name": "metar-plot-demo",
   "version": "0.1.0",
-  "description": "Open Source Software Blocks",
+  "private": true,
+  "homepage": "/metar-plot-demo/",
+  "dependencies": {
+    "@craco/craco": "^6.4.0",
+    "@material-ui/core": "^4.11.4",
+    "@material-ui/icons": "^4.11.2",
+    "@types/node": "^12.20.11",
+    "@types/react": "^17.0.4",
+    "@types/react-dom": "^17.0.3",
+    "metar-plot": "file:../metar-plot/metar-plot-2.0.0.tgz",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-icons": "^4.3.1",
+    "rxjs": "^7.5.6",
+    "typescript": "^4.2.4",
+    "web-vitals": "^1.1.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^5.12.0",
+    "@testing-library/react": "^11.2.6",
+    "@testing-library/user-event": "^12.8.3",
+    "@types/jest": "^26.0.23",
+    "autoprefixer": "^9.8.8",
+    "postcss": "^7.0.39",
+    "react-scripts": "^4.0.3",
+    "tailwindcss": "npm:@tailwindcss/postcss7-compat@^2.2.17"
+  },
   "scripts": {
     "start": "craco start",
     "build": "craco build",
-    "test": "craco test --roots test/ --testMatch '**/*.test.ts'",
+    "test": "craco test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -13,29 +39,6 @@
       "react-app",
       "react-app/jest"
     ]
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jgunzelman88/ossblocks.git"
-  },
-  "keywords": [
-    "Crafting",
-    "game"
-  ],
-  "author": "jeff.gunzelman",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/jgunzelman88/ossblocks/issues"
-  },
-  "dependencies": {
-    "@craco/craco": "^6.4.0",
-    "babylonjs": "^4.2.0",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "simplex-noise": "^3.0.0",
-    "typescript": "^4.4.4",
-    "uuid": "^8.3.2",
-    "web-vitals": "^1.1.2"
   },
   "browserslist": {
     "production": [
@@ -48,20 +51,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "devDependencies": {
-    "react-scripts": "^4.0.3",
-    "@testing-library/jest-dom": "^5.15.0",
-    "@testing-library/react": "^11.2.7",
-    "@testing-library/user-event": "^12.8.3",
-    "@types/babylonjs": "^2.4.1",
-    "@types/jest": "^26.0.24",
-    "@types/node": "^12.20.36",
-    "@types/react": "^17.0.34",
-    "@types/react-dom": "^17.0.11",
-    "@types/uuid": "^8.3.1",
-    "autoprefixer": "^9.8.8",
-    "postcss": "^7.0.39",
-    "tailwindcss": "npm:@tailwindcss/postcss7-compat@^2.2.17"
   }
 }

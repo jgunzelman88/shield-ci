@@ -1,5 +1,5 @@
 # ---- Dev Image ---- 
-FROM redhat/ubi8:latest
+FROM redhat/ubi9:latest
 VOLUME [ "/home/shieldci/" ] home
 VOLUME [ "/home/shieldci/target" ] target
 

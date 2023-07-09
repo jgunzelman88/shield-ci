@@ -1,3 +1,5 @@
+use std::process::Command;
+
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize)]
@@ -8,6 +10,7 @@ pub struct DependencyReport {
     pub application_name: String,
     pub application_id: Option<String>,
     pub project: String,
+    pub branch: Option<String>,
     pub vulnerabilities: Vec<Vulnerability>
 }
 
@@ -26,3 +29,11 @@ pub struct Vulnerability {
     pub references: Vec<String>
 }
 
+pub fn get_branch() -> Result<String, Box<dyn std::error::Error>> {
+    let output = Command::new("git")
+        .arg("branch")
+        .arg("--show-current")
+        .output()?;
+    let stdout = String::from_utf8(output.stdout)?;
+    Ok(stdout)
+}

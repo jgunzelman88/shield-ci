@@ -10,13 +10,13 @@ ENV SHIELD_USER = ""
 ENV SHIELD_PASS = ""
 
 # ---- Run ---- 
-FROM redhat/ubi8:latest AS runtime
+FROM alpine:3.18 AS runtime
 VOLUME [ "/home/shieldci/scan" ] scan
 ENV SHIELD_CI_SCAN_DIR="/home/shieldci/scan"
 
 # Install trivy
-RUN rpm -ivh https://github.com/aquasecurity/trivy/releases/download/v0.42.1/trivy_0.42.1_Linux-64bit.rpm
-
+RUN apk --no-cache add ca-certificates git && \
+    curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.18.3
 # Copy EXE
 COPY --from=builder /shieldci/target/debug/shieldci /home/shieldci/
 

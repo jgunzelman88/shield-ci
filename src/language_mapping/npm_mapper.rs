@@ -1,6 +1,6 @@
 use crate::models::application::{read_applicaiton, Application, Dependency, DependencySet};
 use crate::models::config::{Config, RESULT_DIR};
-use crate::models::dependecy_report::{DependencyReport, Vulnerability};
+use crate::models::dependecy_report::{get_branch, DependencyReport, Vulnerability};
 use crate::models::property_mapping;
 use crate::models::trivy;
 use crate::utils::shared::{self, get_config};
@@ -46,7 +46,7 @@ pub struct NpmPackage {
     pub name: String,
     pub description: Option<String>,
     pub dependencies: HashMap<String, String>,
-    pub dev_dependencies: HashMap<String, String>, 
+    pub dev_dependencies: HashMap<String, String>,
     pub version: String,
 }
 
@@ -193,11 +193,17 @@ pub fn get_dependency_report(
             }
         }
     }
+    let branch: Option<String>;
+    match get_branch() {
+        Ok(result) => branch = Some(result),
+        Err(_) => branch = None,
+    }
     Ok(DependencyReport {
         id: None,
         application_name: app.name.to_owned(),
         application_id: app.id.to_owned(),
         project: app.project.to_owned(),
+        branch: branch,
         vulnerabilities: vulnerabilities,
     })
 }
@@ -245,9 +251,9 @@ fn get_parent_dependencies(
             continue;
         };
         for (dep, _) in package_info.requires.unwrap() {
-            //log::debug!("dep: {}",&dep);
+            log::debug!("dep: {}",&dep);
             if dep == dependency {
-                //log::debug!("Found dep: {}, searching ....", &dep);
+                log::debug!("Found dep: {}, searching ....", &dep);
                 let path = dfs_dependecies(&dep, &dep, &dep_set)?;
                 log::debug!("Path: {}", &path);
                 parents.insert(path);
@@ -282,12 +288,22 @@ fn dfs_dependecies(
     if dependencies.contains(dependency) {
         return Ok(format!("{}::{}", dependency, path));
     } else {
+        let path_copy = String::from(path);
+        let path_parts = path_copy.as_str().split("::");
+        let mut path_collection = path_parts.collect::<Vec<&str>>();
+        path_collection.sort();
         for (root_name, deps) in all_deps {
             if deps.requires.is_none() {
                 continue;
             }
             for (dep_name, _) in deps.requires.unwrap() {
-                if dep_name == dependency.to_string() {
+                let search_result = path_collection.binary_search(&dep_name.as_str());
+                let found_in_path: bool;
+                match search_result {
+                    Ok(_) => { found_in_path = true; log::debug!("found in {} in path moving to next dep to avoid loop", dep_name)},
+                    Err(_) => found_in_path = false
+                }
+                if dep_name == dependency.to_string() && found_in_path {
                     let new_path = format!("{}::{}", &root_name, path);
                     log::debug!("{}", &new_path);
                     return Ok(dfs_dependecies(&root_name, &new_path, dependencies)?);
@@ -371,7 +387,7 @@ mod npm_mapper_tests {
     fn test_find_root_dep() {
         set_up();
         let app = map_application("122345").unwrap();
-        let paths = get_parent_dependencies("ansi-html", &app).unwrap();
+        let paths = get_parent_dependencies("call-bind", &app).unwrap();
         let path_string = serde_json::to_string_pretty(&paths).unwrap();
         log::info!("result :\n{}", path_string);
         let paths = get_parent_dependencies("node-forge", &app).unwrap();
