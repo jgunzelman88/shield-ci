@@ -1,5 +1,3 @@
-use std::process::Command;
-
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize)]
@@ -27,13 +25,4 @@ pub struct Vulnerability {
     pub updated: Option<String>,
     pub description: Option<String>,
     pub references: Vec<String>
-}
-
-pub fn get_branch() -> Result<String, Box<dyn std::error::Error>> {
-    let output = Command::new("git")
-        .arg("branch")
-        .arg("--show-current")
-        .output()?;
-    let stdout = String::from_utf8(output.stdout)?;
-    Ok(stdout)
 }

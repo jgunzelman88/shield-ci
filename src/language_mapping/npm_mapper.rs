@@ -1,8 +1,9 @@
 use crate::models::application::{read_applicaiton, Application, Dependency, DependencySet};
 use crate::models::config::{Config, RESULT_DIR};
-use crate::models::dependecy_report::{get_branch, DependencyReport, Vulnerability};
+use crate::models::dependecy_report::{DependencyReport, Vulnerability};
 use crate::models::property_mapping;
 use crate::models::trivy;
+use crate::utils::git_utils::{get_branch, get_branches};
 use crate::utils::shared::{self, get_config};
 use crate::utils::shield;
 
@@ -143,13 +144,18 @@ pub fn map_application(project: &str) -> Result<Application, Box<dyn std::error:
     dependecy_sets.push(DependencySet {
         name: Some(String::from("Production")),
         source: String::from("package.json"),
-        dependencies: dev_deps.clone(),
+        dependencies: prod_deps.clone(),
     });
     dependecy_sets.push(DependencySet {
         name: Some(String::from("Development")),
         source: String::from("package.json"),
         dependencies: dev_deps.clone(),
     });
+    let branches: Vec<String>;
+    match get_branches() {
+      Ok(val) => branches = val,
+      Err(e) => {log::error!("Failed to get Branches :( {}", e); branches = Vec::new()}
+    }
     Ok(Application {
         id: current_app.id,
         name: package_lock.name,
@@ -161,6 +167,7 @@ pub fn map_application(project: &str) -> Result<Application, Box<dyn std::error:
         internal_dependencies: dev_deps,
         external_dependencies: external_deps,
         dependency_sets: dependecy_sets,
+        branches: branches
     })
 }
 

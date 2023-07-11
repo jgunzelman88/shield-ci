@@ -21,6 +21,7 @@ pub struct Application {
     pub internal_dependencies: Vec::<Dependency>,
     pub external_dependencies: Vec::<Dependency>,
     pub dependency_sets: Vec::<DependencySet>,
+    pub branches: Vec::<String>
 }
 
 #[derive(Serialize)]
@@ -73,7 +74,8 @@ pub fn read_applicaiton() -> Application {
       subcomponents: None,
       internal_dependencies: Vec::new(),
       external_dependencies: Vec::new(),
-      dependency_sets: Vec::new()
+      dependency_sets: Vec::new(),
+      branches: Vec::new()
   };
   match fs::File::open(format!("{}/{}/app.json", config.base_dir, RESULT_DIR)) {
       Ok(file) => app_file = file,
