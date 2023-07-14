@@ -15,7 +15,9 @@ lazy_static! {
         project_id: String::new(),
         shield_server: String::new(),
         shield_user: String::new(),
-        shield_pass: String::new()
+        shield_pass: String::new(),
+        image_path: String::new(),
+        image_tag: String::new(),
     });
 }
 

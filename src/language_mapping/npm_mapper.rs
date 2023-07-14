@@ -55,7 +55,7 @@ lazy_static! {
     static ref PACKAGE_LOCK: RwLock<PackageLock> = RwLock::new(read_package_lock());
 }
 
-pub async fn process_npm(config: &Config, trivy: &trivy::TrivyReport) {
+pub async fn process_npm(config: &Config, trivy_fs: &trivy::TrivyReport, trivy_image: Option<&trivy::TrivyReport>) {
     log::info!("NPM Application Processing ....");
     let app: Application;
     match map_application(&config.project_id) {
@@ -69,7 +69,7 @@ pub async fn process_npm(config: &Config, trivy: &trivy::TrivyReport) {
     shared::write_json_file(path::Path::new(&app_path_name), &app);
     log::info!("NPM Dependency Processing ....");
     let dep_report: DependencyReport;
-    match get_dependency_report(&trivy, &app) {
+    match get_dependency_report(&trivy_fs, &app) {
         Ok(value) => dep_report = value,
         Err(e) => {
             log::error!("Failed to get dep report {}", e);
@@ -185,6 +185,14 @@ pub fn get_dependency_report(
                 }
                 for vul in trivy_vuls {
                     let paths = get_parent_dependencies(&vul.PkgName, app)?;
+                    let mut top_level_dep = String::new();
+                    if paths.len() != 0 {
+                      let path = paths[0].clone();
+                      let tokens: Vec<&str> = path.split("::").collect();
+                      if tokens.len() > 0 {
+                        top_level_dep = String::from(tokens[0]);
+                      }
+                    }
                     vulnerabilities.push(Vulnerability {
                         name: vul.PkgName,
                         version: vul.InstalledVersion,
@@ -195,6 +203,7 @@ pub fn get_dependency_report(
                         updated: vul.LastModifiedDate,
                         description: Some(vul.Description.to_owned()),
                         references: Vec::new(),
+                        top_level_dependency: Some(top_level_dep),
                     })
                 }
             }
@@ -212,6 +221,7 @@ pub fn get_dependency_report(
         project: app.project.to_owned(),
         branch: branch,
         vulnerabilities: vulnerabilities,
+        image_reports: Vec::new()
     })
 }
 
@@ -375,6 +385,8 @@ mod npm_mapper_tests {
             shield_server: String::new(),
             shield_user: String::new(),
             shield_pass: String::new(),
+            image_path: String::new(),
+            image_tag: String::new(),
         };
         shared::update_config(config);
     }

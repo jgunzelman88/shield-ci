@@ -32,6 +32,10 @@ pub struct Args {
     shield_user: String,
     #[arg(long, default_value_t = String::from(""))]
     shield_pass: String,
+    #[arg(long, default_value_t = String::from(""))]
+    image_path: String,
+    #[arg(long, default_value_t = String::from(""))]
+    image_tag: String,
 }
 
 #[tokio::main]
@@ -44,26 +48,46 @@ async fn main() {
     match init_config(&args) {
         Ok(val) => {
             config = val.clone();
-            shared::update_config(val)
+            shared::update_config(val);
         }
         Err(e) => {
             log::error!("Failed to configure: {}", e);
-            exit(1)
+            exit(1);
         }
     }
     let tech = application::detect_technologies();
-    let trivy: TrivyReport;
+    let trivy_fs: TrivyReport;
     match trivy_utils::run_fs_scan() {
-        Ok(rpt) => trivy = rpt,
+        Ok(rpt) => {
+            trivy_fs = rpt;
+        }
         Err(e) => {
             log::error!("Trivy failed! {}", e);
             exit(1);
         }
     }
+    let trivy_image: Option<&TrivyReport>;
+    let trivey_image_rpt: TrivyReport;
+    let image_path = config.image_path.clone();
+    let image_tag = config.image_tag.clone();
+    if image_path != "" && image_tag != "" {
+        match trivy_utils::run_image_scan() {
+            Ok(rpt) => {
+              trivey_image_rpt = rpt;
+              trivy_image = Some(&trivey_image_rpt);
+            }
+            Err(e) => {
+                log::error!("Trivy image scan failed! {}", e);
+                exit(1);
+            }
+        }
+    }else{
+      trivy_image = None;
+    }
     if tech.npm {
-        npm_mapper::process_npm(&config, &trivy).await;
+        npm_mapper::process_npm(&config, &trivy_fs, trivy_image).await;
     } else {
-        log::info!("No compatable technology found!")
+        log::info!("No compatable technology found!");
     }
     log::info!("Finished!!");
 }
@@ -113,9 +137,24 @@ fn init_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
             shield_pass = String::from(shield_pass_env.unwrap().to_string_lossy());
         }
     }
+    // IMAGE PATH
+    let mut image_path = String::from(&args.image_path);
+    if args.image_path == "" {
+        let image_path_env = std::env::var_os("IMAGE_PATH");
+        if image_path_env.is_some() {
+            image_path = String::from(image_path_env.unwrap().to_string_lossy());
+        }
+    }
+    // IMAGE PATH
+    let mut image_tag = String::from(&args.image_tag);
+    if args.image_tag == "" {
+        let image_tag_env = std::env::var_os("IMAGE_PATH");
+        if image_tag_env.is_some() {
+            image_tag = String::from(image_tag_env.unwrap().to_string_lossy());
+        }
+    }
     // If path does not exsist throw error
     let path = path::Path::new(&base_dir);
-
     if path.exists() {
         let config = Config {
             base_dir: base_dir,
@@ -123,12 +162,14 @@ fn init_config(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
             shield_server: shield_url.clone(),
             shield_user: shield_user.clone(),
             shield_pass: shield_pass.clone(),
+            image_path: image_path.clone(),
+            image_tag: image_tag.clone(),
         };
         let redact: String;
         if shield_pass != "" {
             redact = String::from("******");
         } else {
-            redact = String::from("NOT SET!!!")
+            redact = String::from("NOT SET!!!");
         }
         log::debug!(
             "Config:\n

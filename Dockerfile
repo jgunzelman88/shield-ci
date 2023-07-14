@@ -15,7 +15,7 @@ VOLUME [ "/home/shieldci/scan" ] scan
 ENV SHIELD_CI_SCAN_DIR="/home/shieldci/scan"
 
 # Install trivy
-RUN apk --no-cache add ca-certificates git && \
+RUN apk --no-cache add ca-certificates git docker && \
     curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.18.3
 # Copy EXE
 COPY --from=builder /shieldci/target/debug/shieldci /home/shieldci/
