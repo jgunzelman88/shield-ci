@@ -33,6 +33,6 @@ pub struct Vulnerability {
 #[derive(Deserialize)]
 #[derive(Clone)]
 pub struct ImageReport {
-  pub dockerfile: String,
+  pub tag: String,
   pub vulnerabilities: Vec<Vulnerability>
 }

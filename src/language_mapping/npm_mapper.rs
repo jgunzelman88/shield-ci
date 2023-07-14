@@ -1,15 +1,15 @@
-use crate::models::application::{read_applicaiton, Application, Dependency, DependencySet};
-use crate::models::config::{Config, RESULT_DIR};
-use crate::models::dependecy_report::{DependencyReport, Vulnerability};
+use crate::models::application::{ read_applicaiton, Application, Dependency, DependencySet };
+use crate::models::config::{ Config, RESULT_DIR };
+use crate::models::dependecy_report::{ DependencyReport, Vulnerability, ImageReport };
 use crate::models::property_mapping;
-use crate::models::trivy;
-use crate::utils::git_utils::{get_branch, get_branches};
-use crate::utils::shared::{self, get_config};
+use crate::models::trivy::{ self, TrivyReport };
+use crate::utils::git_utils::{ get_branch, get_branches };
+use crate::utils::shared::{ self, get_config };
 use crate::utils::shield;
 
 use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use serde::{ Deserialize, Serialize };
+use std::collections::{ HashMap, HashSet };
 use std::fs::File;
 use std::io::Read;
 use std::path;
@@ -55,11 +55,17 @@ lazy_static! {
     static ref PACKAGE_LOCK: RwLock<PackageLock> = RwLock::new(read_package_lock());
 }
 
-pub async fn process_npm(config: &Config, trivy_fs: &trivy::TrivyReport, trivy_image: Option<&trivy::TrivyReport>) {
+pub async fn process_npm(
+    config: &Config,
+    trivy_fs: &trivy::TrivyReport,
+    trivy_image: Option<&trivy::TrivyReport>
+) {
     log::info!("NPM Application Processing ....");
     let app: Application;
     match map_application(&config.project_id) {
-        Ok(value) => app = value,
+        Ok(value) => {
+            app = value;
+        }
         Err(e) => {
             log::error!("Map application Failed {}", e);
             exit(1);
@@ -69,8 +75,10 @@ pub async fn process_npm(config: &Config, trivy_fs: &trivy::TrivyReport, trivy_i
     shared::write_json_file(path::Path::new(&app_path_name), &app);
     log::info!("NPM Dependency Processing ....");
     let dep_report: DependencyReport;
-    match get_dependency_report(&trivy_fs, &app) {
-        Ok(value) => dep_report = value,
+    match get_dependency_report(&trivy_fs, trivy_image, &app) {
+        Ok(value) => {
+            dep_report = value;
+        }
         Err(e) => {
             log::error!("Failed to get dep report {}", e);
             exit(1);
@@ -103,7 +111,7 @@ pub fn map_application(project: &str) -> Result<Application, Box<dyn std::error:
         let mut version = version;
         let lock_verison = get_package_lock_version(&name);
         if lock_verison.is_some() {
-            version = lock_verison.unwrap().to_string()
+            version = lock_verison.unwrap().to_string();
         }
         prod_deps.push(Dependency {
             name: name,
@@ -120,7 +128,7 @@ pub fn map_application(project: &str) -> Result<Application, Box<dyn std::error:
         let mut version = version;
         let lock_verison = get_package_lock_version(&name);
         if lock_verison.is_some() {
-            version = lock_verison.unwrap().to_string()
+            version = lock_verison.unwrap().to_string();
         }
         dev_deps.push(Dependency {
             name: name,
@@ -153,8 +161,13 @@ pub fn map_application(project: &str) -> Result<Application, Box<dyn std::error:
     });
     let branches: Vec<String>;
     match get_branches() {
-      Ok(val) => branches = val,
-      Err(e) => {log::error!("Failed to get Branches :( {}", e); branches = Vec::new()}
+        Ok(val) => {
+            branches = val;
+        }
+        Err(e) => {
+            log::error!("Failed to get Branches :( {}", e);
+            branches = Vec::new();
+        }
     }
     Ok(Application {
         id: current_app.id,
@@ -167,18 +180,59 @@ pub fn map_application(project: &str) -> Result<Application, Box<dyn std::error:
         internal_dependencies: dev_deps,
         external_dependencies: external_deps,
         dependency_sets: dependecy_sets,
-        branches: branches
+        branches: branches,
     })
 }
 
 pub fn get_dependency_report(
     trivy: &trivy::TrivyReport,
-    app: &Application,
+    trivy_image: Option<&trivy::TrivyReport>,
+    app: &Application
 ) -> Result<DependencyReport, Box<dyn std::error::Error>> {
+    let config = get_config();
+    //Process fs scan
+    let vulnerabilities: Vec<Vulnerability> = convert_vulnerabilites(app, trivy, Some("npm"))?;
+    //process image scan
+    let mut image_reports: Vec<ImageReport> = Vec::new();
+    if trivy_image.is_some() {
+        let tag = config.image_tag;
+        let img_vulnerabilities: Vec<Vulnerability> = convert_vulnerabilites(app, trivy, None)?;
+        let img_rpt = ImageReport {
+          tag: tag,
+          vulnerabilities: img_vulnerabilities
+        };
+        image_reports.push(img_rpt);
+    }
+
+    let branch: Option<String>;
+    match get_branch() {
+        Ok(result) => {
+            branch = Some(result);
+        }
+        Err(_) => {
+            branch = None;
+        }
+    }
+    Ok(DependencyReport {
+        id: None,
+        application_name: app.name.to_owned(),
+        application_id: app.id.to_owned(),
+        project: app.project.to_owned(),
+        branch: branch,
+        vulnerabilities: vulnerabilities,
+        image_reports: image_reports,
+    })
+}
+
+fn convert_vulnerabilites(
+    app: &Application,
+    trivy: &TrivyReport,
+    result_filter: Option<&str>
+) -> Result<Vec<Vulnerability>, Box<dyn std::error::Error>> {
     let mut vulnerabilities: Vec<Vulnerability> = Vec::new();
     if trivy.Results.is_some() {
         for result in trivy.Results.to_owned().unwrap() {
-            if result.Type == "npm" {
+            if result_filter.is_none() || result.Type == result_filter.unwrap() {
                 let mut trivy_vuls: Vec<trivy::Vulnerability> = Vec::new();
                 if result.Vulnerabilities.is_some() {
                     trivy_vuls = result.Vulnerabilities.unwrap();
@@ -187,11 +241,11 @@ pub fn get_dependency_report(
                     let paths = get_parent_dependencies(&vul.PkgName, app)?;
                     let mut top_level_dep = String::new();
                     if paths.len() != 0 {
-                      let path = paths[0].clone();
-                      let tokens: Vec<&str> = path.split("::").collect();
-                      if tokens.len() > 0 {
-                        top_level_dep = String::from(tokens[0]);
-                      }
+                        let path = paths[0].clone();
+                        let tokens: Vec<&str> = path.split("::").collect();
+                        if tokens.len() > 0 {
+                            top_level_dep = String::from(tokens[0]);
+                        }
                     }
                     vulnerabilities.push(Vulnerability {
                         name: vul.PkgName,
@@ -204,25 +258,12 @@ pub fn get_dependency_report(
                         description: Some(vul.Description.to_owned()),
                         references: Vec::new(),
                         top_level_dependency: Some(top_level_dep),
-                    })
+                    });
                 }
             }
         }
     }
-    let branch: Option<String>;
-    match get_branch() {
-        Ok(result) => branch = Some(result),
-        Err(_) => branch = None,
-    }
-    Ok(DependencyReport {
-        id: None,
-        application_name: app.name.to_owned(),
-        application_id: app.id.to_owned(),
-        project: app.project.to_owned(),
-        branch: branch,
-        vulnerabilities: vulnerabilities,
-        image_reports: Vec::new()
-    })
+    Ok(vulnerabilities)
 }
 
 /// Get Package lock version from package name. Used to get the acutual version rather than the semantic version pattern
@@ -232,12 +273,12 @@ fn get_package_lock_version(dependency_name: &str) -> Option<String> {
     let package_lock = get_package_lock();
     if package_lock.dependencies.is_none() {
         return None;
-    };
+    }
     let dependencies = package_lock.dependencies.to_owned().unwrap();
     let dep_option = dependencies.get(dependency_name);
     if dep_option.is_none() {
         return None;
-    };
+    }
     return Some(dep_option.unwrap().version.to_owned());
 }
 
@@ -247,7 +288,7 @@ fn get_package_lock_version(dependency_name: &str) -> Option<String> {
 ///    * app: application to find root dependencies from.
 fn get_parent_dependencies(
     dependency: &str,
-    app: &Application,
+    app: &Application
 ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let mut parents: HashSet<String> = HashSet::new();
     let mut dep_set: HashSet<String> = HashSet::new();
@@ -266,9 +307,9 @@ fn get_parent_dependencies(
     for (_, package_info) in all_deps {
         if package_info.requires.is_none() {
             continue;
-        };
+        }
         for (dep, _) in package_info.requires.unwrap() {
-            log::debug!("dep: {}",&dep);
+            log::debug!("dep: {}", &dep);
             if dep == dependency {
                 log::debug!("Found dep: {}, searching ....", &dep);
                 let path = dfs_dependecies(&dep, &dep, &dep_set)?;
@@ -289,7 +330,7 @@ fn get_parent_dependencies(
 fn dfs_dependecies(
     dependency: &str,
     path: &str,
-    dependencies: &HashSet<String>,
+    dependencies: &HashSet<String>
 ) -> Result<String, Box<dyn std::error::Error>> {
     let package_lock = get_package_lock();
     // return path id there are no dependencies
@@ -317,8 +358,16 @@ fn dfs_dependecies(
                 let search_result = path_collection.binary_search(&dep_name.as_str());
                 let found_in_path: bool;
                 match search_result {
-                    Ok(_) => { found_in_path = true; log::debug!("found in {} in path moving to next dep to avoid loop", dep_name)},
-                    Err(_) => found_in_path = false
+                    Ok(_) => {
+                        found_in_path = true;
+                        log::debug!(
+                            "found in {} in path moving to next dep to avoid loop",
+                            dep_name
+                        );
+                    }
+                    Err(_) => {
+                        found_in_path = false;
+                    }
                 }
                 if dep_name == dependency.to_string() && found_in_path {
                     let new_path = format!("{}::{}", &root_name, path);
@@ -346,7 +395,9 @@ fn read_package_lock() -> PackageLock {
     let mut package_lock_file: File;
     let file_open_result = File::open(format!("{}/package-lock.json", &config.base_dir));
     match file_open_result {
-        Ok(file) => package_lock_file = file,
+        Ok(file) => {
+            package_lock_file = file;
+        }
         Err(e) => {
             log::error!("Failed to find package lock file: {}", e);
             return pl;
@@ -358,12 +409,11 @@ fn read_package_lock() -> PackageLock {
         Err(e) => log::error!("failed to read data from package-lock.json: {}", e),
     }
     match serde_json::from_str(&package_lock_json) {
-        Ok(pl_json) => return pl_json,
+        Ok(pl_json) => {
+            return pl_json;
+        }
         Err(e) => {
-            log::error!(
-                "Failed to read package lock file. JSON binding failed: {}",
-                e
-            );
+            log::error!("Failed to read package lock file. JSON binding failed: {}", e);
             return pl;
         }
     }
@@ -419,7 +469,7 @@ mod npm_mapper_tests {
         set_up();
         let app = map_application("1235").unwrap();
         let trivy = trivy_utils::run_fs_scan().unwrap();
-        let dep_report = get_dependency_report(&trivy, &app).unwrap();
+        let dep_report = get_dependency_report(&trivy, None, &app).unwrap();
         let path_string = serde_json::to_string_pretty(&dep_report).unwrap();
         log::info!("result :\n{}", path_string)
     }

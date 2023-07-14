@@ -1,4 +1,3 @@
-use chrono::prelude::{DateTime, Utc};
 use lazy_static::lazy_static;
 use log::LevelFilter;
 use serde::Serialize;
@@ -28,12 +27,6 @@ pub fn update_config(update: Config) {
 
 pub fn get_config() -> Config {
     return CONFIG.read().unwrap().clone();
-}
-
-/// Returns the ISO_8601 timestamp from system time.
-pub fn iso_8601(time: &std::time::SystemTime) -> String {
-    let dt: DateTime<Utc> = time.clone().into();
-    return dt.to_rfc3339();
 }
 
 /// Writes object to a JSON file
