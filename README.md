@@ -1,4 +1,4 @@
-# 🛡️ Shield-CI
+# <img style="height:2rem" src="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIHN0eWxlPSJmaWxsOiB3aGl0ZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KCQkJCTxwYXRoCgkJCQkJZmlsbC1ydWxlPSJldmVub2RkIgoJCQkJCWNsaXAtcnVsZT0iZXZlbm9kZCIKCQkJCQlkPSJNMTIsMUwzLDVWMTFDMywxNi41NSA2Ljg0LDIxLjc0IDEyLDIzQzE3LjE2LDIxLjc0IDIxLDE2LjU1IDIxLDExVjVMMTIsMU0xMiw3QzEzLjQsNyAxNC44LDguMSAxNC44LDkuNVYxMUMxNS40LDExIDE2LDExLjYgMTYsMTIuM1YxNS44QzE2LDE2LjQgMTUuNCwxNyAxNC43LDE3SDkuMkM4LjYsMTcgOCwxNi40IDgsMTUuN1YxMi4yQzgsMTEuNiA4LjYsMTEgOS4yLDExVjkuNUM5LjIsOC4xIDEwLjYsNyAxMiw3TTEyLDguMkMxMS4yLDguMiAxMC41LDguNyAxMC41LDkuNVYxMUgxMy41VjkuNUMxMy41LDguNyAxMi44LDguMiAxMiw4LjJaIgoJCQkJLz4KCQkJPC9zdmc+" alt=""> Shield-CI
 
 CI tool for tracking dependencies, vulnerabilities, and project meta data.
 
@@ -58,6 +58,8 @@ There are 2 options for running shield-ci.  We have a docker container for use i
       --env SHIELD_URL=<SHIELD_URL> \
       --env SHIELD_USER=<SHIELD_USER> \
       --env SHIELD_PASS=<SHIELD_PASS> \
+      --env IMAGE_PATH=<IMAGE_PATH> \
+      --env IMAGE_TAG=<IMAGE_TAG> \
       --env TRIVY_TIMEOUT_SEC=600s \
       --mount type=bind,source=$(pwd),target=/home/shieldci/scan \
       shield-ci:latest
