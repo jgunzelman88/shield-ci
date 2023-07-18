@@ -250,13 +250,14 @@ fn convert_vulnerabilites(
                     vulnerabilities.push(Vulnerability {
                         name: vul.PkgName,
                         version: vul.InstalledVersion,
+                        cve: vul.VulnerabilityID,
                         fixed_version: vul.FixedVersion,
                         paths: paths,
                         severity: vul.Severity,
                         published: vul.PublishedDate,
                         updated: vul.LastModifiedDate,
                         description: Some(vul.Description.to_owned()),
-                        references: Vec::new(),
+                        references: vul.References,
                         top_level_dependency: Some(top_level_dep),
                     });
                 }

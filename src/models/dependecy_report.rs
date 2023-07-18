@@ -19,6 +19,7 @@ pub struct DependencyReport {
 pub struct Vulnerability {
     pub name: String,
     pub version: String,
+    pub cve: String,
     pub fixed_version: Option<String>,
     pub paths: Vec<String>,
     pub top_level_dependency: Option<String>,
